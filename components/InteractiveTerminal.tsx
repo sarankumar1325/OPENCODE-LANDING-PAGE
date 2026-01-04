@@ -9,7 +9,7 @@ const InteractiveTerminal: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
-  const linesEndRef = useRef<HTMLDivElement>(null);
+  const scrollIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (state.lines.length > 0) {
@@ -18,8 +18,35 @@ const InteractiveTerminal: React.FC = () => {
   }, [state.lines.length]);
 
   useEffect(() => {
-    linesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [state.lines]);
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+
+    if (state.isLoading) {
+      scrollIntervalRef.current = window.setInterval(() => {
+        if (terminalRef.current) {
+          terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+      }, 50);
+    } else {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, [state.lines, state.isLoading]);
+
+  const scrollToBottom = useCallback(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +55,8 @@ const InteractiveTerminal: React.FC = () => {
     addToHistory(input);
     await sendMessage(input);
     setInput('');
-  }, [input, state.isLoading, sendMessage, addToHistory]);
+    setTimeout(scrollToBottom, 100);
+  }, [input, state.isLoading, sendMessage, addToHistory, scrollToBottom]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowUp') {
@@ -139,15 +167,13 @@ const InteractiveTerminal: React.FC = () => {
           </div>
         ))}
         
-        {state.isLoading && (
-          <div className="flex items-center gap-2 py-1">
-            <span className="text-terminal-green animate-pulse">●</span>
-            <span className="text-terminal-muted text-sm">Processing...</span>
-          </div>
-        )}
-        
-        <div ref={linesEndRef} />
-      </div>
+          {state.isLoading && (
+            <div className="flex items-center gap-2 py-1">
+              <span className="text-terminal-green animate-pulse">●</span>
+              <span className="text-terminal-muted text-sm">Processing...</span>
+            </div>
+          )}
+        </div>
 
       <form 
         onSubmit={handleSubmit}
@@ -186,7 +212,7 @@ const InteractiveTerminal: React.FC = () => {
           Tavily
         </span>
         <span>•</span>
-        <span>Groq/Llama3</span>
+        <span>Groq/Kimi-K2</span>
       </div>
     </div>
   );

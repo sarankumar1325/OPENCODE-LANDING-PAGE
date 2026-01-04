@@ -230,7 +230,7 @@ export default function App() {
           </div>
 
            <div className="lg:col-span-6 flex flex-col justify-center">
-            <Box title="CHAT" className="p-0 overflow-hidden border-terminal-border">
+            <Box className="p-0 overflow-hidden border-terminal-border">
                <InteractiveTerminal />
             </Box>
           </div>
