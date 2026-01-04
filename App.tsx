@@ -1,0 +1,514 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Copy, 
+  Terminal as TerminalIcon, 
+  Cpu, 
+  Share2, 
+  Lock, 
+  Globe, 
+  Zap, 
+  ChevronRight,
+  Monitor
+} from 'lucide-react';
+import { BootSequence } from './components/BootSequence';
+import { TerminalText } from './components/ui/TerminalText';
+import { Box } from './components/ui/Box';
+import { Stats } from './components/Stats';
+import { NavBar } from './components/NavBar';
+
+// Types and Constants
+enum InstallMethod {
+  CURL = 'curl',
+  NPM = 'npm',
+  BUN = 'bun',
+  BREW = 'brew',
+}
+
+const installCommands = {
+  [InstallMethod.CURL]: 'curl -fsSL https://opencode.ai/install | bash',
+  [InstallMethod.NPM]: 'npm install -g opencode',
+  [InstallMethod.BUN]: 'bun add -g opencode',
+  [InstallMethod.BREW]: 'brew install opencode',
+};
+
+const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="border-b border-terminal-border last:border-0">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-left py-4 px-2 hover:bg-terminal-border/30 transition-colors flex items-start gap-3 group"
+      >
+        <span className="text-terminal-green font-mono">
+          {isOpen ? '[-]' : '[+]'}
+        </span>
+        <span className="font-mono text-sm md:text-base group-hover:text-terminal-green transition-colors">
+          {question}
+        </span>
+      </button>
+      {isOpen && (
+        <div className="pl-8 pr-4 pb-4 text-terminal-muted text-sm font-mono leading-relaxed">
+          {answer}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FeatureItem: React.FC<{ icon: React.ReactNode; title: string; desc: string }> = ({ icon, title, desc }) => (
+  <div className="flex items-start gap-4 p-2">
+    <div className="text-terminal-green mt-1">{icon}</div>
+    <div>
+      <h3 className="text-terminal-text font-bold mb-1 uppercase text-sm tracking-wider">{title}</h3>
+      <p className="text-terminal-muted text-xs md:text-sm leading-relaxed">{desc}</p>
+    </div>
+  </div>
+);
+
+// Component to cycle through models with typing effect
+const ModelCycler = () => {
+  const models = [
+    { name: 'MiniMax-M2', provider: 'MiniMax' },
+    { name: 'Claude-3.5-Sonnet', provider: 'Anthropic' },
+    { name: 'GPT-4o', provider: 'OpenAI' },
+    { name: 'Gemini-1.5-Pro', provider: 'Google' }
+  ];
+
+  const [index, setIndex] = useState(0);
+  const [subIndex, setSubIndex] = useState(0);
+  const [reverse, setReverse] = useState(false);
+  const [blink, setBlink] = useState(true);
+
+  // Typewriter effect
+  useEffect(() => {
+    if (index >= models.length) {
+      setIndex(0);
+      return;
+    }
+
+    const currentModel = models[index];
+    const fullText = `${currentModel.name} ${currentModel.provider}`;
+
+    if (subIndex === fullText.length + 1 && !reverse) {
+      // Finished typing, wait before deleting
+      const timeout = setTimeout(() => setReverse(true), 2000);
+      return () => clearTimeout(timeout);
+    }
+
+    if (subIndex === 0 && reverse) {
+      // Finished deleting, move to next model
+      setReverse(false);
+      setIndex((prev) => (prev + 1) % models.length);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setSubIndex((prev) => prev + (reverse ? -1 : 1));
+    }, reverse ? 30 : 60); // Delete faster than typing
+
+    return () => clearTimeout(timeout);
+  }, [subIndex, index, reverse, models]);
+
+  // Blink cursor
+  useEffect(() => {
+    const timeout = setInterval(() => {
+      setBlink((prev) => !prev);
+    }, 500);
+    return () => clearInterval(timeout);
+  }, []);
+
+  const currentModel = models[index];
+  const fullText = `${currentModel.name} ${currentModel.provider}`;
+  const displayedText = fullText.substring(0, subIndex);
+  
+  // Split displayed text to style name and provider separately if enough text is shown
+  const nameLength = currentModel.name.length;
+  const showProvider = displayedText.length > nameLength;
+  
+  const displayName = showProvider ? currentModel.name : displayedText;
+  const displayProvider = showProvider ? displayedText.substring(nameLength + 1) : '';
+
+  return (
+    <div className="flex items-center gap-3 text-sm font-mono pl-5 h-6">
+      <span className="text-terminal-green">Build</span>
+      <span className="text-white font-bold">{displayName}</span>
+      {displayProvider && <span className="text-terminal-muted">{displayProvider}</span>}
+      <span className={`w-2 h-4 bg-terminal-green ${blink ? 'opacity-100' : 'opacity-0'}`}></span>
+    </div>
+  );
+};
+
+// Pixel-perfect SVG wordmark for "opencode"
+// Refined metrics: 3px width, 1px stroke, 1px spacing, 5px x-height
+const OpenCodeLogo: React.FC<{ className?: string }> = ({ className }) => (
+  <svg 
+    viewBox="0 0 31 9" 
+    className={className} 
+    style={{ shapeRendering: 'crispEdges' }}
+    aria-label="opencode"
+  >
+    <path fill="currentColor" fillRule="evenodd" d="M0,2h3v5h-3zM1,3v3h1v-3zM4,2h3v5h-2v2h-1v-7zM5,3h1v3h-1zM8,2h3v5h-3zM9,3h1v1h-1zM10,5h1v1h-1zM12,2h3v5h-1v-4h-1v4h-1zM16,2h3v5h-3zM17,3h2v3h-2zM20,2h3v5h-3zM21,3h1v3h-1zM24,2h2v-2h1v7h-3zM25,3h1v3h-1zM28,2h3v5h-3zM29,3h1v1h-1zM30,5h1v1h-1z" />
+  </svg>
+);
+
+// New Component to mimic the screenshot provided
+const TerminalPreview: React.FC = () => {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="w-full h-full min-h-[350px] md:min-h-[450px] bg-[#050505] flex flex-col items-center justify-center p-8 font-mono select-none relative overflow-hidden group">
+      {/* Background Layer */}
+      <div className="absolute inset-0 z-0">
+        {!imageError ? (
+          <img 
+            src="/opencode-terminal.png" 
+            alt="Terminal Background" 
+            className="w-full h-full object-cover opacity-40 mix-blend-luminosity"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+           /* Fallback Grid Background */
+           <div className="w-full h-full bg-[linear-gradient(rgba(50,50,50,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(50,50,50,0.1)_1px,transparent_1px)] bg-[size:40px_40px] opacity-50"></div>
+        )}
+      </div>
+      
+      {/* Content Container */}
+      <div className="w-full max-w-2xl relative z-10 flex flex-col items-center">
+        
+        {/* Logo Simulation */}
+        <div className="mb-16 md:mb-24 w-full max-w-[500px] transform transition-transform duration-500 group-hover:scale-105">
+           <OpenCodeLogo className="w-full h-auto text-[#e4e4e7] opacity-90 drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]" />
+           {/* Scanline effect on text */}
+           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.5)_50%,transparent_50%)] bg-[size:100%_4px] pointer-events-none opacity-20"></div>
+        </div>
+
+        {/* Input Simulation */}
+        <div className="w-full max-w-xl pl-4 md:pl-0 backdrop-blur-sm bg-black/30 p-4 rounded border border-white/5">
+          <div className="flex items-center text-lg md:text-xl text-terminal-muted font-normal tracking-tight">
+            <div className="w-1 h-6 md:h-7 bg-terminal-green mr-4 animate-blink shadow-[0_0_10px_#22c55e]"></div>
+            <span className="opacity-60">Ask anything... <span className="opacity-40">"What is the tech stack?"</span></span>
+          </div>
+          <div className="mt-4">
+            <ModelCycler />
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Shortcuts */}
+      <div className="absolute bottom-6 right-8 flex gap-6 text-[10px] md:text-xs text-terminal-muted z-10 opacity-70">
+        <span className="flex items-center gap-2"><span className="text-white font-bold">tab</span> switch agent</span>
+        <span className="flex items-center gap-2"><span className="text-white font-bold">ctrl+p</span> commands</span>
+      </div>
+      
+      {/* Interactive Hover Glow */}
+      <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 opacity-0 group-hover:animate-scan pointer-events-none"></div>
+    </div>
+  );
+};
+
+export default function App() {
+  const [booted, setBooted] = useState(false);
+  const [installMethod, setInstallMethod] = useState<InstallMethod>(InstallMethod.CURL);
+  const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState('');
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(installCommands[installMethod]);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!booted) {
+    return <BootSequence onComplete={() => setBooted(true)} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-terminal-black text-terminal-text font-mono selection:bg-terminal-green selection:text-black">
+      <div className="crt-overlay"></div>
+      
+      <NavBar />
+
+      <main className="pt-20 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-20">
+        
+        {/* HERO SECTION */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-10">
+          <div className="lg:col-span-6 flex flex-col justify-center space-y-8 z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 border border-terminal-green/30 bg-terminal-green/5 text-terminal-green text-xs w-fit">
+              <span className="animate-pulse">●</span>
+              <span>BETA: DESKTOP APP AVAILABLE</span>
+            </div>
+            
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tighter leading-tight text-white">
+              THE <span className="text-terminal-green">OPEN SOURCE</span><br />
+              AI CODING AGENT
+            </h1>
+            
+            <p className="text-lg text-terminal-muted max-w-xl border-l-2 border-terminal-border pl-6">
+              <TerminalText 
+                text="Free models included or connect any model from any provider, including Claude, GPT, Gemini and more."
+                speed={20}
+                delay={500}
+              />
+            </p>
+
+            <div className="mt-8">
+              <div className="flex text-xs border-b border-terminal-border w-fit">
+                {Object.values(InstallMethod).map((method) => (
+                  <button
+                    key={method}
+                    onClick={() => setInstallMethod(method)}
+                    className={`px-4 py-2 uppercase transition-all ${
+                      installMethod === method 
+                        ? 'bg-terminal-text text-terminal-black font-bold' 
+                        : 'text-terminal-muted hover:text-white'
+                    }`}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="relative group mt-0">
+                <div className="bg-terminal-dark border border-terminal-border p-6 flex items-center justify-between">
+                  <code className="text-terminal-green text-sm md:text-base break-all flex-1 mr-4">
+                    <span className="text-terminal-muted mr-2 select-none">$</span>
+                    <TerminalText 
+                      key={installMethod}
+                      text={installCommands[installMethod]} 
+                      speed={15}
+                      delay={100}
+                      cursor={true}
+                    />
+                  </code>
+                  <button 
+                    onClick={handleCopy}
+                    className="ml-4 text-terminal-muted hover:text-white transition-colors shrink-0"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? <span className="text-terminal-green text-xs">COPIED</span> : <Copy size={18} />}
+                  </button>
+                </div>
+                {/* Decorative shadow box */}
+                <div className="absolute top-2 left-2 w-full h-full border border-terminal-border -z-10 bg-transparent hidden md:block"></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-6 flex flex-col justify-center">
+            <Box title="PREVIEW" className="p-0 overflow-hidden group border-terminal-border">
+               <TerminalPreview />
+               <div className="border-t border-terminal-border bg-terminal-black p-3 flex justify-between items-center text-xs text-terminal-muted font-mono">
+                  <span>status: <span className="text-terminal-green">idle</span></span>
+                  <span>v1.0.4-beta</span>
+               </div>
+            </Box>
+          </div>
+        </section>
+
+        {/* STATS STRIP */}
+        <section className="border-y border-terminal-border bg-terminal-dark/30 py-8 px-4 -mx-4 md:-mx-8">
+           <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 items-center">
+              <div className="flex flex-col items-center md:items-start md:pl-4">
+                 <div className="text-3xl font-bold text-white flex items-baseline gap-1">
+                   45K <span className="text-terminal-green text-sm">+</span>
+                 </div>
+                 <div className="text-xs text-terminal-muted uppercase tracking-widest mt-1">GitHub Stars</div>
+              </div>
+              <div className="flex flex-col items-center md:items-start md:border-l border-terminal-border md:pl-8">
+                 <div className="text-3xl font-bold text-white">500</div>
+                 <div className="text-xs text-terminal-muted uppercase tracking-widest mt-1">Contributors</div>
+              </div>
+              <div className="flex flex-col items-center md:items-start md:border-l border-terminal-border md:pl-8">
+                 <div className="text-3xl font-bold text-white">650k</div>
+                 <div className="text-xs text-terminal-muted uppercase tracking-widest mt-1">Monthly Devs</div>
+              </div>
+              <div className="hidden md:block h-12 md:border-l border-terminal-border md:pl-8">
+                 <Stats />
+              </div>
+           </div>
+        </section>
+
+        {/* FEATURES GRID */}
+        <section>
+          <div className="flex items-center gap-4 mb-8">
+             <div className="h-px bg-terminal-border flex-1"></div>
+             <h2 className="text-xl font-bold text-white uppercase tracking-widest">[ CAPABILITIES ]</h2>
+             <div className="h-px bg-terminal-border flex-1"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border border-terminal-border bg-terminal-border">
+             <div className="bg-terminal-black p-6 border-b lg:border-b-0 lg:border-r border-terminal-border hover:bg-terminal-border/10 transition-colors">
+                <FeatureItem 
+                  icon={<TerminalIcon />}
+                  title="LSP Enabled" 
+                  desc="Automatically loads the right LSPs for the LLM to understand your codebase structure instantly."
+                />
+             </div>
+             <div className="bg-terminal-black p-6 border-b lg:border-b-0 lg:border-r border-terminal-border hover:bg-terminal-border/10 transition-colors">
+                <FeatureItem 
+                  icon={<Cpu />}
+                  title="Multi-Session" 
+                  desc="Start multiple agents in parallel on the same project. Threading for your workflow."
+                />
+             </div>
+             <div className="bg-terminal-black p-6 border-b lg:border-b-0 border-terminal-border hover:bg-terminal-border/10 transition-colors">
+                <FeatureItem 
+                  icon={<Share2 />}
+                  title="Share Links" 
+                  desc="Generate persistent links to any session for reference, debugging, or team collaboration."
+                />
+             </div>
+             <div className="bg-terminal-black p-6 border-b md:border-b-0 lg:border-r border-terminal-border hover:bg-terminal-border/10 transition-colors">
+                <FeatureItem 
+                  icon={<Lock />}
+                  title="Claude Pro" 
+                  desc="Log in with Anthropic to use your Claude Pro or Max account directly within the terminal."
+                />
+             </div>
+             <div className="bg-terminal-black p-6 border-b md:border-b-0 lg:border-r border-terminal-border hover:bg-terminal-border/10 transition-colors">
+                <FeatureItem 
+                  icon={<Globe />}
+                  title="Any Model" 
+                  desc="75+ LLM providers via Models.dev. Use local models via Ollama. No lock-in."
+                />
+             </div>
+             <div className="bg-terminal-black p-6 hover:bg-terminal-border/10 transition-colors">
+                <FeatureItem 
+                  icon={<Monitor />}
+                  title="Any Editor" 
+                  desc="Available as a raw terminal interface, a native desktop app, and an IDE extension."
+                />
+             </div>
+          </div>
+        </section>
+
+        {/* PRIVACY SECTION */}
+        <section className="relative overflow-hidden">
+          <Box className="border-l-4 border-l-terminal-green">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                 <h2 className="text-2xl font-bold text-white mb-4">BUILT FOR PRIVACY FIRST</h2>
+                 <p className="text-terminal-muted mb-6 leading-relaxed">
+                   OpenCode does not store any of your code or context data. 
+                   It operates strictly within your local environment or ephemeral sessions.
+                   Designed for privacy-sensitive enterprise environments.
+                 </p>
+                 <a href="#" className="inline-flex items-center text-terminal-green hover:underline decoration-1 underline-offset-4">
+                   READ SECURITY AUDIT <ChevronRight size={16} />
+                 </a>
+              </div>
+              <div className="bg-terminal-dark p-6 font-mono text-xs text-terminal-muted border border-terminal-border">
+                <div className="flex justify-between mb-2">
+                   <span>DATA_RETENTION</span>
+                   <span className="text-terminal-green">FALSE</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                   <span>TELEMETRY</span>
+                   <span className="text-terminal-green">OPT-IN</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                   <span>CODE_STORAGE</span>
+                   <span className="text-terminal-green">NULL</span>
+                </div>
+                <div className="flex justify-between">
+                   <span>ENCRYPTION</span>
+                   <span className="text-terminal-green">AES-256</span>
+                </div>
+              </div>
+            </div>
+          </Box>
+        </section>
+
+        {/* ZEN SECTION */}
+        <section className="bg-terminal-border/10 border-y border-terminal-border py-16 -mx-4 md:-mx-8 px-4 md:px-8">
+           <div className="max-w-4xl mx-auto text-center">
+              <div className="inline-block p-3 border border-terminal-green rounded-full mb-6">
+                <Zap className="text-terminal-green" size={32} />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-4">ACCESS RELIABLE OPTIMIZED MODELS</h2>
+              <p className="text-terminal-muted max-w-2xl mx-auto mb-8">
+                Zen gives you access to a handpicked set of AI models that OpenCode has tested and benchmarked specifically for coding agents. Eliminate hallucination.
+              </p>
+              <button className="bg-terminal-green text-black font-bold px-8 py-3 hover:bg-white transition-colors uppercase tracking-wider">
+                Learn About Zen
+              </button>
+           </div>
+        </section>
+
+        {/* FAQ SECTION */}
+        <section className="grid lg:grid-cols-12 gap-12">
+          <div className="lg:col-span-4">
+            <h2 className="text-6xl font-bold text-terminal-border opacity-20 absolute -z-10 -ml-4 -mt-4 select-none">FAQ</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">FREQUENTLY ASKED</h2>
+            <p className="text-terminal-muted text-sm">
+              Questions regarding usage, licensing, and model integration.
+              <br /><br />
+              For technical support, please open an issue on GitHub.
+            </p>
+          </div>
+          <div className="lg:col-span-8">
+            <div className="border-t border-terminal-border">
+              <FAQItem 
+                question="What is OpenCode?" 
+                answer="OpenCode is an open source agent that helps you write and run code with any AI model. It's available as a terminal-based interface, desktop app, or IDE extension."
+              />
+              <FAQItem 
+                question="Do I need extra AI subscriptions?" 
+                answer="Not necessarily. OpenCode comes with free models. You can also connect your own API keys for Claude, OpenAI, Gemini, or use local models via Ollama."
+              />
+              <FAQItem 
+                question="Can I use existing subscriptions?" 
+                answer="Yes. Supports Claude Pro/Max, ChatGPT Plus/Pro, and GitHub Copilot subscriptions directly."
+              />
+              <FAQItem 
+                question="Is OpenCode open source?" 
+                answer="Yes. Fully open source under MIT License. 45k+ stars on GitHub. Community driven."
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* NEWSLETTER */}
+        <section className="border border-terminal-border p-8 md:p-12 relative overflow-hidden">
+           <div className="absolute top-0 right-0 p-4 opacity-10">
+              <TerminalIcon size={200} />
+           </div>
+           <div className="relative z-10 max-w-xl">
+              <h3 className="text-xl font-bold text-white mb-2">SUBSCRIBE_TO_UPDATES</h3>
+              <p className="text-terminal-muted mb-6 text-sm">Join the waitlist for early access to new products.</p>
+              <div className="flex gap-2">
+                <input 
+                  type="email" 
+                  placeholder="user@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-terminal-black border border-terminal-border px-4 py-2 w-full text-terminal-text focus:outline-none focus:border-terminal-green placeholder:text-terminal-border"
+                />
+                <button className="bg-terminal-text text-black px-6 py-2 font-bold hover:bg-terminal-green transition-colors uppercase text-sm">
+                  Init
+                </button>
+              </div>
+           </div>
+        </section>
+
+        {/* FOOTER */}
+        <footer className="border-t border-terminal-border pt-8 text-xs text-terminal-muted flex flex-col md:flex-row justify-between items-center gap-4">
+           <div className="flex items-center gap-2">
+             <div className="w-2 h-2 bg-terminal-green rounded-full"></div>
+             <span>SYSTEM: ONLINE</span>
+           </div>
+           <div className="flex gap-6">
+             <a href="#" className="hover:text-white transition-colors">GITHUB [45K]</a>
+             <a href="#" className="hover:text-white transition-colors">DOCS</a>
+             <a href="#" className="hover:text-white transition-colors">DISCORD</a>
+             <a href="#" className="hover:text-white transition-colors">X</a>
+           </div>
+           <div>
+             &copy; 2026 ANOMALY. MIT LICENSE.
+           </div>
+        </footer>
+
+      </main>
+    </div>
+  );
+}
