@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Copy, 
-  Terminal as TerminalIcon, 
-  Cpu, 
-  Share2, 
-  Lock, 
-  Globe, 
-  Zap, 
+import {
+  Copy,
+  Terminal as TerminalIcon,
+  Cpu,
+  Share2,
+  Lock,
+  Globe,
+  Zap,
   ChevronRight,
   Monitor
 } from 'lucide-react';
@@ -15,6 +15,8 @@ import { TerminalText } from './components/ui/TerminalText';
 import { Box } from './components/ui/Box';
 import { Stats } from './components/Stats';
 import { NavBar } from './components/NavBar';
+import InteractiveTerminal from './components/InteractiveTerminal';
+import { ChatProvider } from './src/context/ChatContext';
 
 // Types and Constants
 enum InstallMethod {
@@ -138,74 +140,6 @@ const ModelCycler = () => {
   );
 };
 
-// Pixel-perfect SVG wordmark for "opencode"
-// Refined metrics: 3px width, 1px stroke, 1px spacing, 5px x-height
-const OpenCodeLogo: React.FC<{ className?: string }> = ({ className }) => (
-  <svg 
-    viewBox="0 0 31 9" 
-    className={className} 
-    style={{ shapeRendering: 'crispEdges' }}
-    aria-label="opencode"
-  >
-    <path fill="currentColor" fillRule="evenodd" d="M0,2h3v5h-3zM1,3v3h1v-3zM4,2h3v5h-2v2h-1v-7zM5,3h1v3h-1zM8,2h3v5h-3zM9,3h1v1h-1zM10,5h1v1h-1zM12,2h3v5h-1v-4h-1v4h-1zM16,2h3v5h-3zM17,3h2v3h-2zM20,2h3v5h-3zM21,3h1v3h-1zM24,2h2v-2h1v7h-3zM25,3h1v3h-1zM28,2h3v5h-3zM29,3h1v1h-1zM30,5h1v1h-1z" />
-  </svg>
-);
-
-// New Component to mimic the screenshot provided
-const TerminalPreview: React.FC = () => {
-  const [imageError, setImageError] = useState(false);
-
-  return (
-    <div className="w-full h-full min-h-[350px] md:min-h-[450px] bg-[#050505] flex flex-col items-center justify-center p-8 font-mono select-none relative overflow-hidden group">
-      {/* Background Layer */}
-      <div className="absolute inset-0 z-0">
-        {!imageError ? (
-          <img 
-            src="/opencode-terminal.png" 
-            alt="Terminal Background" 
-            className="w-full h-full object-cover opacity-40 mix-blend-luminosity"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-           /* Fallback Grid Background */
-           <div className="w-full h-full bg-[linear-gradient(rgba(50,50,50,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(50,50,50,0.1)_1px,transparent_1px)] bg-[size:40px_40px] opacity-50"></div>
-        )}
-      </div>
-      
-      {/* Content Container */}
-      <div className="w-full max-w-2xl relative z-10 flex flex-col items-center">
-        
-        {/* Logo Simulation */}
-        <div className="mb-16 md:mb-24 w-full max-w-[500px] transform transition-transform duration-500 group-hover:scale-105">
-           <OpenCodeLogo className="w-full h-auto text-[#e4e4e7] opacity-90 drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]" />
-           {/* Scanline effect on text */}
-           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.5)_50%,transparent_50%)] bg-[size:100%_4px] pointer-events-none opacity-20"></div>
-        </div>
-
-        {/* Input Simulation */}
-        <div className="w-full max-w-xl pl-4 md:pl-0 backdrop-blur-sm bg-black/30 p-4 rounded border border-white/5">
-          <div className="flex items-center text-lg md:text-xl text-terminal-muted font-normal tracking-tight">
-            <div className="w-1 h-6 md:h-7 bg-terminal-green mr-4 animate-blink shadow-[0_0_10px_#22c55e]"></div>
-            <span className="opacity-60">Ask anything... <span className="opacity-40">"What is the tech stack?"</span></span>
-          </div>
-          <div className="mt-4">
-            <ModelCycler />
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Shortcuts */}
-      <div className="absolute bottom-6 right-8 flex gap-6 text-[10px] md:text-xs text-terminal-muted z-10 opacity-70">
-        <span className="flex items-center gap-2"><span className="text-white font-bold">tab</span> switch agent</span>
-        <span className="flex items-center gap-2"><span className="text-white font-bold">ctrl+p</span> commands</span>
-      </div>
-      
-      {/* Interactive Hover Glow */}
-      <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 opacity-0 group-hover:animate-scan pointer-events-none"></div>
-    </div>
-  );
-};
-
 export default function App() {
   const [booted, setBooted] = useState(false);
   const [installMethod, setInstallMethod] = useState<InstallMethod>(InstallMethod.CURL);
@@ -223,16 +157,17 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-terminal-black text-terminal-text font-mono selection:bg-terminal-green selection:text-black">
-      <div className="crt-overlay"></div>
-      
-      <NavBar />
-
-      <main className="pt-20 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-20">
+    <ChatProvider>
+      <div className="min-h-screen bg-terminal-black text-terminal-text font-mono selection:bg-terminal-green selection:text-black">
+        <div className="crt-overlay"></div>
         
-        {/* HERO SECTION */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-10">
-          <div className="lg:col-span-6 flex flex-col justify-center space-y-8 z-10">
+        <NavBar />
+
+        <main className="pt-20 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-20">
+          
+          {/* HERO SECTION */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-10">
+            <div className="lg:col-span-6 flex flex-col justify-center space-y-8 z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 border border-terminal-green/30 bg-terminal-green/5 text-terminal-green text-xs w-fit">
               <span className="animate-pulse">●</span>
               <span>BETA: DESKTOP APP AVAILABLE</span>
@@ -294,13 +229,9 @@ export default function App() {
             </div>
           </div>
 
-          <div className="lg:col-span-6 flex flex-col justify-center">
-            <Box title="PREVIEW" className="p-0 overflow-hidden group border-terminal-border">
-               <TerminalPreview />
-               <div className="border-t border-terminal-border bg-terminal-black p-3 flex justify-between items-center text-xs text-terminal-muted font-mono">
-                  <span>status: <span className="text-terminal-green">idle</span></span>
-                  <span>v1.0.4-beta</span>
-               </div>
+           <div className="lg:col-span-6 flex flex-col justify-center">
+            <Box title="CHAT" className="p-0 overflow-hidden border-terminal-border">
+               <InteractiveTerminal />
             </Box>
           </div>
         </section>
@@ -506,9 +437,10 @@ export default function App() {
            <div>
              &copy; 2026 ANOMALY. MIT LICENSE.
            </div>
-        </footer>
+         </footer>
 
-      </main>
-    </div>
+        </main>
+      </div>
+    </ChatProvider>
   );
 }
